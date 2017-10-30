@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">    
+    <event name="admin_user_authenticate_after">
+        <observer name="blindhash_adminUserAuthenticated" instance="BlindHash\SecurePassword\Model\Observer\AdminUserAuthenticated"/>
+    </event>
+    <event name="customer_customer_authenticated">
+        <observer name="blindhash_customerAuthenticated" instance="BlindHash\SecurePassword\Model\Observer\CustomerAuthenticated"/>
+    </event>
+    <event name="admin_system_config_changed_section_blindhash">
+        <observer name="blindhash_verifyTapLinkApi" instance="BlindHash\SecurePassword\Model\Observer\verifyTapLinkApi"/>
+    </event>
+</config>

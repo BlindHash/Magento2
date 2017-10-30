@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <tab id="blindhash" translate="label" sortOrder="100">
+            <label>blindhash</label>
+        </tab>
+        <section id="blindhash" translate="label" sortOrder="140" showInDefault="1" showInWebsite="1" showInStore="1">
+            <class>securepassword</class>
+            <label>Secure Password</label>
+            <tab>blindhash</tab>
+            <resource>BlindHash_SecurePassword::securepassword</resource>
+            <group id="general" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Enable</label>
+                <field id="enabled" translate="label" type="select" sortOrder="1" showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Enable BlindHash Protection ?</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>       
+                <field id="api_key" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">                    
+                    <validate>required-entry</validate>
+                    <label>Api Key</label>
+                    <comment>Api Key of Blind Hash</comment>
+                </field>
+                <field id="api_public_key" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">                    
+                    <validate>required-entry</validate>
+                    <label>Api Public Key</label>
+                    <comment>Api Public Key of Blind Hash</comment>
+                </field>    
+            </group>                               
+        </section>
+    </system>
+</config>
