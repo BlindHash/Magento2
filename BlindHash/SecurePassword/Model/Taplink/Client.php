@@ -57,8 +57,8 @@ class Client
     private function makeURL($url, $attempts = 0)
     {
         return sprintf('https://%s/%s', trim($this->getServer($attempts), '/'), ltrim($url, '/'));
-    }
-
+    }    
+    
     private function get($url)
     {
         $ch = curl_init($this->makeURL($url));
@@ -75,6 +75,11 @@ class Client
         return new Response(json_decode($res, true));
     }
 
+    /**
+     * Check if current server is localhost or not
+     * 
+     * @return boolean
+     */
     public function isLocalMachine()
     {
         $whitelist = array(
@@ -84,6 +89,11 @@ class Client
         return (in_array($_SERVER['REMOTE_ADDR'], $whitelist)) ? true : false;
     }
 
+    /**
+     * Return public key
+     * 
+     * @return string
+     */
     public function getPublicKey()
     {
         $ch = curl_init($this->makeURL($this->appID));
@@ -107,12 +117,27 @@ class Client
             return;
     }
 
+    /**
+     * Encrypt string
+     * 
+     * @param type $publicKeyHex
+     * @param type $hashHex
+     * @return string
+     */
     public function encrypt($publicKeyHex, $hashHex)
     {
         $crypt = \Sodium\crypto_box_seal(hex2bin($hashHex), hex2bin($publicKeyHex));
         return bin2hex($crypt);
     }
 
+    /**
+     * Decrypt string 
+     * 
+     * @param type $publicKeyHex
+     * @param type $privateKeyHex
+     * @param type $cryptHex
+     * @return string
+     */
     public function decrypt($publicKeyHex, $privateKeyHex, $cryptHex)
     {
         $keypair = hex2bin($privateKeyHex . $publicKeyHex);
@@ -120,6 +145,11 @@ class Client
         return bin2hex($decrypt);
     }
 
+    /**
+     * Encryption Test
+     * 
+     * @return int
+     */
     public function encryptTest()
     {
         $message = "This is a test.";
@@ -132,6 +162,7 @@ class Client
         );
         $crypt = \Sodium\crypto_box_seal($message, $publickey);
         $decrypt = \Sodium\crypto_box_seal_open($crypt, $keypair);
+
         return strcmp($message, $decrypt) === 0;
     }
 }

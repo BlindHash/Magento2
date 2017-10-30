@@ -9,7 +9,13 @@ use Magento\Framework\DB\Adapter\AdapterInterface;
 
 class InstallSchema implements InstallSchemaInterface
 {
-
+    
+    /**
+     * Change password type from varchar to text
+     * 
+     * @param SchemaSetupInterface $setup
+     * @param ModuleContextInterface $context
+     */
     public function install(SchemaSetupInterface $setup, ModuleContextInterface $context)
     {
         $setup->startSetup();

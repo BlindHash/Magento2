@@ -2,3 +2,4 @@
 \Magento\Framework\Component\ComponentRegistrar::register(
     \Magento\Framework\Component\ComponentRegistrar::MODULE, 'BlindHash_SecurePassword', __DIR__
 );
+
