@@ -17,9 +17,6 @@ class Button extends \Magento\Config\Block\System\Config\Form\Field
             function downgradeHashes(){
             
                 var privateKey = document.getElementById('blindhash_general_api_private_key'); 
-                if(privateKey.style.display == 'none'){
-                    privateKey.style.display = 'block';
-                }  
                 
                 if(privateKey.value)
                     setLocation('{$url}?private_key='+privateKey.value);
@@ -37,5 +34,21 @@ class Button extends \Magento\Config\Block\System\Config\Form\Field
         );
 
         return $button->toHtml() . $downgradeHashesJs;
+    }
+
+    /**
+     * Decorate field row html
+     *
+     * @param \Magento\Framework\Data\Form\Element\AbstractElement $element
+     * @param string $html
+     * @return string
+     */
+    protected function _decorateRowHtml(\Magento\Framework\Data\Form\Element\AbstractElement $element, $html)
+    {
+         $unInstallKey = '<tr id = "row_blindhash_general_api_private_key"><td class="label"><span data-config-scope="[STORE VIEW]">Uninstall Key</span></td>
+        <td class = "value"><input id = "blindhash_general_api_private_key" class = " input-text" type = "text"></td>
+        </tr>';
+
+        return '<tr id="row_' . $element->getHtmlId() . '">' . $html . '</tr>' . $unInstallKey;
     }
 }
