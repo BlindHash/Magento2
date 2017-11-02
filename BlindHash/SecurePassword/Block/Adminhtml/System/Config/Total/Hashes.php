@@ -2,6 +2,15 @@
 
 class Hashes extends \Magento\Config\Block\System\Config\Form\Field
 {
+
+    protected $hashes;
+
+    public function __construct(\Magento\Backend\Block\Template\Context $context, \BlindHash\SecurePassword\Model\Hashes $hashes, array $data = [])
+    {
+        $this->hashes = $hashes;
+        parent::__construct($context, $data);
+    }
+
     /**
      * Return total hashes count
      * 
@@ -9,8 +18,7 @@ class Hashes extends \Magento\Config\Block\System\Config\Form\Field
      * @return int
      */
     protected function _getElementHtml(\Magento\Framework\Data\Form\Element\AbstractElement $element)
-    {
-        // TODO return total hashes
-        return "No of Hashes";
+    {        
+        return $this->hashes->getTotalHashes();
     }
 }

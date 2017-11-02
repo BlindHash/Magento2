@@ -3,17 +3,15 @@
 class Hashes
 {
 
-    protected $resource;
     protected $read;
-    protected $write;
     protected $customerPasswordTable;
     protected $adminPasswordTable;
-    protected $apiPasswordTable;
-    protected $attributeId;
 
-    public function _construct()
+    public function __construct(\Magento\Framework\App\ResourceConnection $resource)
     {
-        
+        $this->read = $resource->getConnection();
+        $this->customerPasswordTable = $resource->getTableName('customer_entity');
+        $this->adminPasswordTable = $resource->getTableName('admin_user');
     }
 
     /**
@@ -23,9 +21,8 @@ class Hashes
      */
     public function getTotalHashes()
     {
-        $query = "SELECT SUM(total.hash) FROM (SELECT count(*) as hash FROM {$this->customerPasswordTable} WHERE attribute_id = {$this->attributeId} AND"
-            . " value <> '' UNION ALL SELECT count(*) as hash FROM {$this->apiPasswordTable} WHERE `api_key` <> '' UNION ALL SELECT count(*) as hash FROM"
-            . " {$this->adminPasswordTable} WHERE `password` <> '') as total";
+        $query = "SELECT SUM(total.hash) FROM (SELECT count(*) as hash FROM {$this->customerPasswordTable} WHERE password_hash <> '' "
+            . "UNION ALL SELECT count(*) as hash FROM {$this->adminPasswordTable} WHERE `password` <> '') as total";
         return $this->read->fetchOne($query);
     }
 
@@ -36,10 +33,10 @@ class Hashes
      */
     public function getTotalBlindHashes()
     {
-        $blindhashPrefix = BlindHash_SecurePassword_Model_Encryption::PREFIX . BlindHash_SecurePassword_Model_Encryption::DELIMITER;
-        $query = "SELECT SUM(total.hash) FROM (SELECT count(*) as hash FROM {$this->customerPasswordTable} WHERE attribute_id = {$this->attributeId} AND"
-            . " value like '$blindhashPrefix%' UNION ALL SELECT count(*) as hash FROM {$this->apiPasswordTable} WHERE `api_key` like '$blindhashPrefix%'"
-            . " UNION ALL SELECT count(*) as hash FROM {$this->adminPasswordTable} WHERE `password` like '$blindhashPrefix%') as total";
+        $blindhashPrefix = \BlindHash\SecurePassword\Model\Encryption::PREFIX . \BlindHash\SecurePassword\Model\Encryption::BLINDHASH_DELIMITER;
+
+        $query = "SELECT SUM(total.hash) FROM (SELECT count(*) as hash FROM {$this->customerPasswordTable} WHERE password_hash like '$blindhashPrefix%' "
+            . "UNION ALL SELECT count(*) as hash FROM {$this->adminPasswordTable} WHERE `password` like '$blindhashPrefix%') as total";
 
         return $this->read->fetchOne($query);
     }

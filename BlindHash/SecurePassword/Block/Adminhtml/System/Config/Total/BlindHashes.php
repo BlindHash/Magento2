@@ -3,6 +3,14 @@
 class BlindHashes extends \Magento\Config\Block\System\Config\Form\Field
 {
 
+    protected $hashes;
+
+    public function __construct(\Magento\Backend\Block\Template\Context $context, \BlindHash\SecurePassword\Model\Hashes $hashes, array $data = [])
+    {
+        $this->hashes = $hashes;
+        parent::__construct($context, $data);
+    }
+
     /**
      * Return total blindhashes count
      * 
@@ -11,7 +19,6 @@ class BlindHashes extends \Magento\Config\Block\System\Config\Form\Field
      */
     protected function _getElementHtml(\Magento\Framework\Data\Form\Element\AbstractElement $element)
     {
-        // TODO return total blindhashes
-        return "No of BlindHashes";
+        return $this->hashes->getTotalBlindHashes();
     }
 }
