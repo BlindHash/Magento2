@@ -10,23 +10,14 @@ use Magento\Framework\Math\Random;
 class Encryption extends \Magento\Framework\Encryption\Encryptor implements \Magento\Framework\Encryption\EncryptorInterface
 {
 
-    const DEFAULT_SALT_LENGTH = 64;
-    const HASH_VERSION_SHA512 = 3;
-    const HASH_VERSION_LATEST = 2;
+    const BLINDHASH_SALT_LENGTH = 64;
+    const HASH_ALGORITHM = 'sha512';
+    const NEW_HASHING_VERSION = 3;
     const BLINDHASH_DELIMITER = '$';
     const PREFIX = 'T';
 
     protected $taplink;
     protected $scopeConfig;
-
-    /**
-     * @var array map of hash versions
-     */
-    private $hashVersionMap = [
-        parent::HASH_VERSION_MD5 => 'md5',
-        parent::HASH_VERSION_SHA256 => 'sha256',
-        self::HASH_VERSION_SHA512 => 'sha512',
-    ];
 
     public function __construct(
     Random $random, DeploymentConfig $deploymentConfig, \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig)
@@ -35,14 +26,14 @@ class Encryption extends \Magento\Framework\Encryption\Encryptor implements \Mag
         parent::__construct($random, $deploymentConfig);
     }
 
-    public function getHash($password, $salt = false, $version = self::HASH_VERSION_LATEST)
+    public function getHash($password, $salt = false, $version = self::NEW_HASHING_VERSION)
     {
         if (!$this->scopeConfig->getValue('blindhash/general/enabled')) {
             return parent::getHash($password, $salt, $version);
         }
 
         if ($salt === true) {
-            $salt = self::DEFAULT_SALT_LENGTH;
+            $salt = self::BLINDHASH_SALT_LENGTH;
         }
         if (is_integer($salt)) {
             $salt = $this->random->getRandomString($salt);
@@ -52,8 +43,7 @@ class Encryption extends \Magento\Framework\Encryption\Encryptor implements \Mag
         $publicKey = $this->getPublicKey();
 
         // The hash to send to TapLink is the SHA512-HMAC(salt, password)
-        $res = $taplink->newPassword(hash_hmac('sha512', $salt, $password));
-
+        $res = $taplink->newPassword(hash_hmac(self::HASH_ALGORITHM, $password, $salt));
 
         if ($res->error) {
             throw new \Exception($res->error);
@@ -63,8 +53,26 @@ class Encryption extends \Magento\Framework\Encryption\Encryptor implements \Mag
         $hash1 = parent::getHash($password, $salt, $version);
         // encrypt with libsodium
         $hash1 = $taplink->encrypt($publicKey, @explode(self::DELIMITER, $hash1)[0]);
-        
-        return implode(self::BLINDHASH_DELIMITER, [self::PREFIX, $res->hash2Hex, $salt, self::HASH_VERSION_LATEST, $hash1]);
+
+        return implode(self::BLINDHASH_DELIMITER, [self::PREFIX, $res->hash2Hex, $salt, self::NEW_HASHING_VERSION, $hash1]);
+    }
+
+    protected function _blindhash($hash, $salt, $version = self::NEW_HASHING_VERSION)
+    {
+        $taplink = $this->getTaplinkObject();
+        $publicKey = $this->getPublicKey();
+
+        // The hash to send to TapLink is the SHA512-HMAC(salt, password)
+        $res = $taplink->newPassword(hash_hmac(self::HASH_ALGORITHM, $hash, $salt));
+
+        if ($res->error) {
+            throw new \Exception($res->error);
+        }
+
+        // encrypt with libsodium
+        $hash = $taplink->encrypt($publicKey, $hash);
+
+        return @implode(self::BLINDHASH_DELIMITER, [self::PREFIX, $res->hash2Hex, $salt, $version, $hash]);
     }
 
     public function getTaplinkObject()
@@ -95,12 +103,13 @@ class Encryption extends \Magento\Framework\Encryption\Encryptor implements \Mag
         list($T, $expectedHash2Hex, $salt, $version) = explode(self::BLINDHASH_DELIMITER, $hash);
 
         $version = (int) $version;
-        if ($version < self::HASH_VERSION_LATEST) {
-            return parent::isValidHash($password, $hash);
+        if ($version < self::NEW_HASHING_VERSION) {
+            $password = @explode(self::DELIMITER, parent::getHash($password, $salt, $version))[0];
         }
         // This is a TapLink Blind hash
         $taplink = $this->getTaplinkObject();
-        $res = $taplink->verifyPassword(hash_hmac('sha512', $salt, $password), $expectedHash2Hex);
+        $res = $taplink->verifyPassword(hash_hmac(self::HASH_ALGORITHM, $password, $salt), $expectedHash2Hex);
+        
         if ($res->error) {
             throw new \Exception($res->error);
         }

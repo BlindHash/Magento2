@@ -57,12 +57,14 @@ class Client
     private function makeURL($url, $attempts = 0)
     {
         return sprintf('https://%s/%s', trim($this->getServer($attempts), '/'), ltrim($url, '/'));
-    }    
-    
+    }
+
     private function get($url)
     {
         $ch = curl_init($this->makeURL($url));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $verifyer = ($this->isLocalMachine()) ? false : true;
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $verifyer);
         curl_setopt($ch, CURLOPT_HTTPHEADER, array(
             'User-Agent: ' . $this->userAgent,
             'Accept: application/json',
@@ -98,9 +100,8 @@ class Client
     {
         $ch = curl_init($this->makeURL($this->appID));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
         $verifyer = ($this->isLocalMachine()) ? false : true;
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $verifyer);
         curl_setopt($ch, CURLOPT_HTTPHEADER, array(
             'User-Agent: ' . $this->userAgent,
             'Accept: application/json',
