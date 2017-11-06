@@ -92,6 +92,16 @@ class Client
     }
 
     /**
+     * Verify AppId
+     * @return boolean
+     */
+    public function verifyAppId()
+    {
+        $res = $this->get(sprintf('%s', $this->appID));
+        return (!$res->err) ? true : false;
+    }
+
+    /**
      * Return public key
      * 
      * @return string
@@ -127,6 +137,10 @@ class Client
      */
     public function encrypt($publicKeyHex, $hashHex)
     {
+        if (!function_exists('\Sodium\crypto_box_seal')) {
+            return $hashHex;
+        }
+
         $crypt = \Sodium\crypto_box_seal(hex2bin($hashHex), hex2bin($publicKeyHex));
         return bin2hex($crypt);
     }
@@ -141,6 +155,10 @@ class Client
      */
     public function decrypt($publicKeyHex, $privateKeyHex, $cryptHex)
     {
+        if (!function_exists('\Sodium\crypto_box_seal')) {
+            return $cryptHex;
+        }
+
         $keypair = hex2bin($privateKeyHex . $publicKeyHex);
         $decrypt = \Sodium\crypto_box_seal_open(hex2bin($cryptHex), $keypair);
         return bin2hex($decrypt);
@@ -153,17 +171,26 @@ class Client
      */
     public function encryptTest()
     {
-        $message = "This is a test.";
-        $keypair = hex2bin(
-            '15b36cb00213373fb3fb03958fb0cc0012ecaca112fd249d3cf0961e311caac9' .
-            'fb4cb34f74a928b79123333c1e63d991060244cda98affee14c3398c6d315574'
-        );
-        $publickey = hex2bin(
-            'fb4cb34f74a928b79123333c1e63d991060244cda98affee14c3398c6d315574'
-        );
-        $crypt = \Sodium\crypto_box_seal($message, $publickey);
-        $decrypt = \Sodium\crypto_box_seal_open($crypt, $keypair);
+        if (!function_exists('\Sodium\crypto_box_seal')) {
+            return false;
+        }
 
-        return strcmp($message, $decrypt) === 0;
+        try {
+
+            $message = "This is a test.";
+            $keypair = hex2bin(
+                '15b36cb00213373fb3fb03958fb0cc0012ecaca112fd249d3cf0961e311caac9' .
+                'fb4cb34f74a928b79123333c1e63d991060244cda98affee14c3398c6d315574'
+            );
+            $publickey = hex2bin(
+                'fb4cb34f74a928b79123333c1e63d991060244cda98affee14c3398c6d315574'
+            );
+            $crypt = \Sodium\crypto_box_seal($message, $publickey);
+            $decrypt = \Sodium\crypto_box_seal_open($crypt, $keypair);
+
+            return strcmp($message, $decrypt) === 0;
+        } catch (Exception $ex) {
+            return false;
+        }
     }
 }
