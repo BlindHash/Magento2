@@ -1,24 +1,35 @@
-<?php
-namespace BlindHash\SecurePassword\Model;
+<?php namespace BlindHash\SecurePassword\Model;
 
-class Downgrade extends BlindHash\SecurePassword\Model\Encryption
+use Magento\Framework\App\DeploymentConfig;
+use Magento\Framework\Math\Random;
+
+class Downgrade extends \BlindHash\SecurePassword\Model\Encryption
 {
 
-    protected $resource;
-    protected $read;
     protected $write;
     protected $customerPasswordTable;
     protected $adminPasswordTable;
-    protected $apiPasswordTable;
-    protected $prefix = self::PREFIX . self::DELIMITER;
-    protected $count = 0;
+    protected $prefix;
     protected $privateKey;
+    protected $publicKeyHex;
+    protected $taplink;
+    protected $messageManager;
+    protected $count = 0;
+    protected $_responseFactory;
+    protected $_url;
 
     const LIMIT = 100;
 
-    public function __construct()
+    public function __construct(\Magento\Framework\App\ResourceConnection $resource, Random $random, DeploymentConfig $deploymentConfig, \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig, \Magento\Framework\Message\ManagerInterface $messageManager, \Magento\Framework\App\ResponseFactory $responseFactory, \Magento\Framework\UrlInterface $url)
     {
-       
+        $this->write = $resource->getConnection();
+        $this->customerPasswordTable = $resource->getTableName('customer_entity');
+        $this->messageManager = $messageManager;
+        $this->adminPasswordTable = $resource->getTableName('admin_user');
+        $this->prefix = self::PREFIX . self::BLINDHASH_DELIMITER;
+        $this->_responseFactory = $responseFactory;
+        $this->_url = $url;
+        parent::__construct($random, $deploymentConfig, $scopeConfig);
     }
 
     /**
@@ -28,20 +39,21 @@ class Downgrade extends BlindHash\SecurePassword\Model\Encryption
     public function downgradeAllPasswords($privateKey)
     {
         $this->privateKey = $privateKey;
+        $this->publicKeyHex = $this->getPublicKey();
+        $this->taplink = $this->getTaplinkObject();
         $this->downgradeAllAdminPasswords();
-        $this->downgradeAllApiPasswords();
         $this->downgradeAllCustomerPasswords();
         return $this->count;
     }
 
     /**
-     * Downgrade all blina hashes of admin users
+     * Downgrade all blind hashes of admin users
      * @return int
      */
     protected function downgradeAllAdminPasswords()
     {
         $query = "SELECT user_id,password AS hash FROM {$this->adminPasswordTable} WHERE password like '$this->prefix%' ";
-        $passwordList = $this->read->fetchAll($query);
+        $passwordList = $this->write->fetchAll($query);
 
         if (!$passwordList)
             return;
@@ -52,44 +64,27 @@ class Downgrade extends BlindHash\SecurePassword\Model\Encryption
     }
 
     /**
-     * Downgrade all blina hashes of api users
-     * @return int
-     */
-    protected function downgradeAllApiPasswords()
-    {
-        $query = "SELECT user_id,api_key AS hash FROM {$this->apiPasswordTable} WHERE api_key like '$this->prefix%' ";
-        $passwordList = $this->read->fetchAll($query);
-
-        if (!$passwordList)
-            return;
-
-        foreach ($passwordList as $password)
-            $this->_convertToOldHash($password['hash'], $password['user_id'], $this->apiPasswordTable, 'api_key', 'user_id');
-    }
-
-    /**
-     * Downgrade all blina hashes of customers
+     * Downgrade all blind hashes of customers
      * @return int
      */
     public function downgradeAllCustomerPasswords()
     {
-        $attribute = Mage::getModel('eav/config')->getAttribute('customer', 'password_hash');
         $limit = self::LIMIT;
         while (true) {
 
-            $query = "SELECT entity_id,value AS hash FROM {$this->customerPasswordTable} WHERE attribute_id = {$attribute->getId()} AND value like '$this->prefix%' limit {$limit}";
-            $passwordList = $this->read->fetchAll($query);
+            $query = "SELECT entity_id,password_hash AS hash FROM {$this->customerPasswordTable} WHERE password_hash like '$this->prefix%' limit {$limit}";
+            $passwordList = $this->write->fetchAll($query);
 
             if (!$passwordList)
                 break;
 
             foreach ($passwordList as $password)
-                $this->_convertToOldHash($password['hash'], $password['entity_id'], $this->customerPasswordTable, 'value', 'entity_id');
+                $this->_convertToOldHash($password['hash'], $password['entity_id'], $this->customerPasswordTable, 'password_hash', 'entity_id');
         }
     }
 
     /**
-     * Downgrade password from blindhash to old md5 and update to DB
+     * Downgrade password from blindhash to old sha256 hash and update to DB
      * 
      * @param string $hash
      * @param int $id
@@ -100,7 +95,7 @@ class Downgrade extends BlindHash\SecurePassword\Model\Encryption
      */
     protected function _convertToOldHash($hash, $id, $table, $field1, $field2)
     {
-        $hashArr = explode(self::DELIMITER, $hash);
+        $hashArr = explode(self::BLINDHASH_DELIMITER, $hash);
         if ((count($hashArr) < 5)) {
             return;
         }
@@ -111,17 +106,17 @@ class Downgrade extends BlindHash\SecurePassword\Model\Encryption
 
         // If decryption fails then get back to admin with error
         if ($hash1Encrypted && empty($hash1)) {
-            Mage::getSingleton('adminhtml/session')->addError(Mage::helper('blindhash_securepassword')->__('Not able to decrypt password.'));
-            $url = Mage::helper("adminhtml")->getUrl('adminhtml/system_config/edit', array('section' => 'blindhash'));
-            $response = Mage::app()->getFrontController()->getResponse();
-            $response->setRedirect($url);
-            $response->sendResponse();
+            $this->messageManager->addError(__('Not able to decrypt password.'));
+            $url = $this->_url->getUrl('adminhtml/system_config/edit', array('section' => 'blindhash'));
+            $this->_responseFactory->create()->setRedirect($url)->sendResponse();
             exit;
         }
 
-        if ($version != self::OLD_HASHING_WITHOUT_SALT_VERSION) {
-            $hash1 .= ':' . $salt;
+        if ($version == self::NEW_HASHING_VERSION) {
+            $version = self::HASH_VERSION_LATEST;
         }
+
+        $hash1 = @implode(parent::DELIMITER, [$hash1, $salt, $version]);
 
         if ($this->write->update($table, array($field1 => $hash1), array($field2 . ' = ?' => $id)))
             $this->count++;

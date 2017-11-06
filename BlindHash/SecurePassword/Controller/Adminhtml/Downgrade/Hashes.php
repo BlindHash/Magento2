@@ -3,8 +3,47 @@
 class Hashes extends \Magento\Backend\App\Action
 {
 
+    protected $resourceConfig;
+    protected $downgrade;
+    protected $messageManager;
+    protected $hashes;
+
+    public function __construct(
+    \Magento\Backend\App\Action\Context $context, \BlindHash\SecurePassword\Model\Downgrade $downgrade, \Magento\Framework\Message\ManagerInterface $messageManager, \Magento\Framework\App\Config\ConfigResource\ConfigInterface $resourceConfig, \BlindHash\SecurePassword\Model\Hashes $hashes)
+    {
+        parent::__construct($context);
+        $this->resourceConfig = $resourceConfig;
+        $this->downgrade = $downgrade;
+        $this->messageManager = $messageManager;
+        $this->hashes = $hashes;
+    }
+
     public function execute()
     {
-        // TODO Downgrade hashes
+        if ($privateKey = $this->getRequest()->getParam('private_key')) {
+            $count = $this->downgrade->downgradeAllPasswords($privateKey);
+        } else {
+            $this->messageManager->addError(__('Please provide Unistall key to downgrade blindhashes.'));
+        }
+
+        if ($count) {
+            $this->messageManager->addSuccess(__($count . ' password(s) has been downgraded to blind hash.'));
+            //Disable BlindHash
+            $this->disableBlindHashProtection();
+        } else {
+            $this->messageManager->addNotice(__('There are no blindhash passwords.'));
+        }
+        $this->_redirect('adminhtml/system_config/edit', array('section' => 'blindhash'));
+    }
+
+    /**
+     * Disable Blindhash Protection if there are now blindhashes left
+     */
+    private function disableBlindHashProtection()
+    {
+        $noOfBlindHashes = $this->hashes->getTotalBlindHashes();
+        if ($noOfBlindHashes == 0) {
+            $this->resourceConfig->saveConfig('blindhash/general/enabled', '', \Magento\Framework\App\Config\ScopeConfigInterface::SCOPE_TYPE_DEFAULT, \Magento\Store\Model\Store::DEFAULT_STORE_ID);
+        }
     }
 }
