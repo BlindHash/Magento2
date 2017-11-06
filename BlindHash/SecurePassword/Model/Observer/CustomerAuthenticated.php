@@ -21,7 +21,7 @@ class CustomerAuthenticated implements \Magento\Framework\Event\ObserverInterfac
      */
     public function execute(\Magento\Framework\Event\Observer $observer)
     {
-        if (!$this->scopeConfig->getValue('blindhash/general/enabled')) {
+        if (!(boolean) $this->scopeConfig->getValue('blindhash/general/enabled')) {
             return;
         }
 

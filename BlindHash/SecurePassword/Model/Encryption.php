@@ -28,7 +28,8 @@ class Encryption extends \Magento\Framework\Encryption\Encryptor implements \Mag
 
     public function getHash($password, $salt = false, $version = self::NEW_HASHING_VERSION)
     {
-        if (!$this->scopeConfig->getValue('blindhash/general/enabled')) {
+
+        if ($salt === false || !(boolean) $this->scopeConfig->getValue('blindhash/general/enabled')) {
             return parent::getHash($password, $salt, $version);
         }
 
@@ -109,7 +110,7 @@ class Encryption extends \Magento\Framework\Encryption\Encryptor implements \Mag
         // This is a TapLink Blind hash
         $taplink = $this->getTaplinkObject();
         $res = $taplink->verifyPassword(hash_hmac(self::HASH_ALGORITHM, $password, $salt), $expectedHash2Hex);
-        
+
         if ($res->error) {
             throw new \Exception($res->error);
         }
