@@ -28,7 +28,7 @@ class CustomerAuthenticated implements \Magento\Framework\Event\ObserverInterfac
         $password = $observer->getPassword();
         $customer = $observer->getModel();
 
-        if (!$this->encryptor->IsBlindHashed($customer->getPasswordHash())
+        if ($this->encryptor->CanUpgradeToBlindHash($password, $customer->getPasswordHash())
         ) {
             $customer->setPassword($password);
             $customer->save();

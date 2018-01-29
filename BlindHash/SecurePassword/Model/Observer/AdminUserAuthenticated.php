@@ -27,8 +27,7 @@ class AdminUserAuthenticated implements \Magento\Framework\Event\ObserverInterfa
 
         $password = $observer->getPassword();
         $user = $observer->getUser();
-
-        if (!$this->encryptor->IsBlindHashed($user->getPassword())
+        if ($this->encryptor->CanUpgradeToBlindHash($password, $user->getPassword())
         ) {
             $user->setPassword($password);
             $user->save();

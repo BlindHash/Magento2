@@ -23,6 +23,7 @@ class Encryption extends \Magento\Framework\Encryption\Encryptor implements \Mag
     Random $random, DeploymentConfig $deploymentConfig, \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig)
     {
         $this->scopeConfig = $scopeConfig;
+        $this->resourceConfig = $resourceConfig;
         parent::__construct($random, $deploymentConfig);
     }
 
@@ -86,7 +87,11 @@ class Encryption extends \Magento\Framework\Encryption\Encryptor implements \Mag
         }
 
         $appId = $this->scopeConfig->getValue('blindhash/general/api_key');
-        return $this->taplink = new Client($appId);
+        $retryCount = $this->scopeConfig->getValue('blindhash/request/retry_count');
+        $timeout = $this->scopeConfig->getValue('blindhash/request/timeout');
+        $serverList = ($this->scopeConfig->getValue('blindhash/general/server_list')) ? @explode(',', $this->scopeConfig->getValue('blindhash/general/server_list')) : array();
+
+        return $this->taplink = new Client($appId, $retryCount, $timeout, $serverList);
     }
 
     public function getPublicKey()
@@ -122,5 +127,21 @@ class Encryption extends \Magento\Framework\Encryption\Encryptor implements \Mag
     {
         $hashArr = explode(self::BLINDHASH_DELIMITER, $hash);
         return (count($hashArr) > 4) ? true : false;
+    }
+
+    /**
+     * Check if hash can be upgraded to a BlindHash
+     * 
+     * @param string $password
+     * @param string $hash
+     * @return bool
+     */
+    public function CanUpgradeToBlindHash($password, $hash)
+    {
+        if ($this->IsBlindHashed($hash)) {
+            return false;
+        }
+
+        return parent::isValidHash($password, $hash);
     }
 }
