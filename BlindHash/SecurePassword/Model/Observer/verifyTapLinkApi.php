@@ -31,26 +31,23 @@ class verifyTapLinkApi implements \Magento\Framework\Event\ObserverInterface
         $defaultStoreId = \Magento\Store\Model\Store::DEFAULT_STORE_ID;
 
         $taplink = $this->encryptor->getTaplinkObject();
+        $taplinkResponse = $taplink->verifyAppId();
 
-        if (!$taplink->verifyAppId()) {
+        if (!$taplinkResponse->err == true) {
             $this->resourceConfig->saveConfig('blindhash/general/enabled', '', $defaultScope, $defaultStoreId);
             $this->resourceConfig->saveConfig('blindhash/general/api_key', '', $defaultScope, $defaultStoreId);
             $this->resourceConfig->saveConfig('blindhash/general/api_public_key', '', $defaultScope, $defaultStoreId);
+            $this->resourceConfig->saveConfig('blindhash/general/server_list', '', $defaultScope, $defaultStoreId);
 
             $this->resourceConfig->saveConfig('blindhash/general/encryption_available', false, $defaultScope, $defaultStoreId);
             $this->messageManager->addError(__('Specified AppID is Invalid.'));
             return;
         }
 
-        $encryptTest = $taplink->encryptTest();        
+        $this->resourceConfig->saveConfig('blindhash/general/api_public_key', $taplinkResponse->publicKey, $defaultScope, $defaultStoreId);
+        $this->resourceConfig->saveConfig('blindhash/general/server_list', @implode(",", $taplinkResponse->servers), $defaultScope, $defaultStoreId);
+
+        $encryptTest = $taplink->encryptTest();
         $this->resourceConfig->saveConfig('blindhash/general/encryption_available', $encryptTest, $defaultScope, $defaultStoreId);
-        
-        $publicKey = $taplink->getPublicKey();
-        
-        if (empty($publicKey)) {
-            $this->resourceConfig->saveConfig('blindhash/general/api_public_key', '', $defaultScope, $defaultStoreId);
-        } else {
-            $this->resourceConfig->saveConfig('blindhash/general/api_public_key', $publicKey, $defaultScope, $defaultStoreId);
-        }
     }
 }

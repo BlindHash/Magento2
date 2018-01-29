@@ -3,8 +3,13 @@
     <default>
         <blindhash>
             <general>
-                <enable>0</enable>
+                <enable>0</enable>                
+                <legacy_hashes>0</legacy_hashes>
             </general>
+            <request>
+                <retry_count>2</retry_count>
+                <timeout>1000</timeout>
+            </request>
         </blindhash>
     </default>
 </config>

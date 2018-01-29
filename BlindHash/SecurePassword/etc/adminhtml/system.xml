@@ -20,29 +20,60 @@
                     <label>AppID Token</label>
                     <comment>AppID Token of Blind Hash</comment>
                 </field>
-                <field id="encryption_available" translate="label" sortOrder="30" type="label" showInDefault="1" showInWebsite="1" showInStore="1">   
+                <field id="legacy_hashes" translate="label" type="select" sortOrder="30" showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Legacy Hashes</label>
+                    <source_model>BlindHash\SecurePassword\Model\System\Config\Source\Legacy</source_model>
+                </field>    
+                <field id="encryption_available" translate="label" sortOrder="40" type="label" showInDefault="1" showInWebsite="1" showInStore="1">   
                     <frontend_model>BlindHash\SecurePassword\Block\Adminhtml\System\Config\Encryption\Available</frontend_model>
                     <label>Encryption Available</label>
                 </field>
-                <field id="api_public_key" translate="label" sortOrder="40" type="label" showInDefault="1" showInWebsite="1" showInStore="1">   
+                <field id="api_public_key" translate="label" sortOrder="50" type="label" showInDefault="1" showInWebsite="1" showInStore="1">   
                     <frontend_model>BlindHash\SecurePassword\Block\Adminhtml\System\Config\Encryption\Loaded</frontend_model>
                     <label>Encryption Key</label>
-                </field>                                
-                <field id="upgrade_hashes" translate="label" sortOrder="50" type="button" showInDefault="1" showInWebsite="1" showInStore="1">   
+                </field>
+                <field id="server_list" translate="label" sortOrder="60" type="text" showInDefault="1" showInWebsite="1" showInStore="1">   
+                    <frontend_model>BlindHash\SecurePassword\Block\Adminhtml\System\Config\Taplink\Serverlist</frontend_model>
+                    <label>Taplink Server List</label>
+                </field>    
+                <field id="upgrade_hashes" translate="label" sortOrder="70" type="button" showInDefault="1" showInWebsite="1" showInStore="1">   
                     <frontend_model>BlindHash\SecurePassword\Block\Adminhtml\System\Config\Upgrade\Button</frontend_model>
                     <comment>Upgrade Hashes will upgrade insecure legacy hashes with BlindHash secured hashes. Users will be able to login as usual.</comment>
                 </field>
-                <field id="downgrade_hashes" translate="label" sortOrder="60" type="button" showInDefault="1" showInWebsite="1" showInStore="1">   
+                <field id="downgrade_hashes" translate="label" sortOrder="80" type="button" showInDefault="1" showInWebsite="1" showInStore="1">   
                     <frontend_model>BlindHash\SecurePassword\Block\Adminhtml\System\Config\Downgrade\Button</frontend_model>
                     <comment>Downgrade Hashes will restore legacy hashes and disable BlindHash security on your hashes. You must downgrade all hashes before uninstalling the BlindHash extension, and you must provide the Uninstall Key.</comment>
                 </field>
-                <field id="total_hashes" translate="label" sortOrder="70" type="label" showInDefault="1" showInWebsite="1" showInStore="1">   
+                <field id="total_hashes" translate="label" sortOrder="90" type="label" showInDefault="1" showInWebsite="1" showInStore="1">   
                     <frontend_model>BlindHash\SecurePassword\Block\Adminhtml\System\Config\Total\Hashes</frontend_model>
                     <label>Total Hashes</label>
                 </field>
-                <field id="total_blindhashes" translate="label" sortOrder="80" type="label" showInDefault="1" showInWebsite="1" showInStore="1">   
+                <field id="total_blindhashes" translate="label" sortOrder="100" type="label" showInDefault="1" showInWebsite="1" showInStore="1">   
                     <frontend_model>BlindHash\SecurePassword\Block\Adminhtml\System\Config\Total\BlindHashes</frontend_model>
                     <label>BlindHash Protected Hashes</label>
+                </field>
+            </group>
+            <group id="request" translate="label" type="text" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Request Management</label>
+                <field id="request_statistics" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Enable BlindHash Protection ?</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>     
+                <field id="retry_count" translate="label" sortOrder="20" type="text" showInDefault="1" showInWebsite="1" showInStore="1">   
+                    <label>Retry Count</label>
+                </field>   
+                <field id="timeout" translate="label" sortOrder="30" type="text" showInDefault="1" showInWebsite="1" showInStore="1">   
+                    <label>Timeout</label>
+                    <comment>Timout values should be passed in miliseconds (1000 ms = 1 second)</comment>
+                </field>   
+                <field id="total_retry_count" translate="label" sortOrder="40" type="label" showInDefault="1" showInWebsite="1" showInStore="1">   
+                    <label>Total Retry Count</label>
+                </field>
+                <field id="total_request_count" translate="label" sortOrder="50" type="label" showInDefault="1" showInWebsite="1" showInStore="1">   
+                    <label>Total Request Count</label>
+                </field>
+                <field id="total_error_count" translate="label" sortOrder="60" type="label" showInDefault="1" showInWebsite="1" showInStore="1">   
+                    <label>Total Error Count</label>
                 </field>
             </group>
         </section>
