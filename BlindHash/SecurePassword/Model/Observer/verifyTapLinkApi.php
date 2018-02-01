@@ -29,11 +29,10 @@ class verifyTapLinkApi implements \Magento\Framework\Event\ObserverInterface
 
         $defaultScope = \Magento\Framework\App\Config\ScopeConfigInterface::SCOPE_TYPE_DEFAULT;
         $defaultStoreId = \Magento\Store\Model\Store::DEFAULT_STORE_ID;
-
         $taplink = $this->encryptor->getTaplinkObject();
         $taplinkResponse = $taplink->verifyAppId();
 
-        if (!$taplinkResponse->err == true) {
+        if ($taplinkResponse->err == true) {
             $this->resourceConfig->saveConfig('blindhash/general/enabled', '', $defaultScope, $defaultStoreId);
             $this->resourceConfig->saveConfig('blindhash/general/api_key', '', $defaultScope, $defaultStoreId);
             $this->resourceConfig->saveConfig('blindhash/general/api_public_key', '', $defaultScope, $defaultStoreId);

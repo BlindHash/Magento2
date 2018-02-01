@@ -56,7 +56,7 @@
             <group id="request" translate="label" type="text" showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>Request Management</label>
                 <field id="request_statistics" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0">
-                    <label>Enable BlindHash Protection ?</label>
+                    <label>Track Request Statistics ?</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>     
                 <field id="retry_count" translate="label" sortOrder="20" type="text" showInDefault="1" showInWebsite="1" showInStore="1">   

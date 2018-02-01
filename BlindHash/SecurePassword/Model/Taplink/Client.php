@@ -11,23 +11,24 @@ class Client
     public $retryCounter = 0;
     public $errorCounter = 0;
     public $timeout;
+    public $helper;
     public static $hashAlgorithm = 'sha512';
     public static $defaultServer = 'api.taplink.co';
 
-    function __construct($appID, $retryCount = 2, $timeout = 1000, $serverList = array())
+    function __construct($appID, $retryCount = 2, $timeout = 1000, $serverList = array(), $helper)
     {
         $this->appID = $appID;
         $this->userAgent = 'TapLink/1.0 php/' . phpversion();
         $this->retryCount = $retryCount;
         $this->timeout = $timeout;
         $this->servers = (empty($serverList)) ? [self::$defaultServer] : $serverList;
-    }    
-    
-    function __destruct()
-    {
-        Mage::helper('blindhash_securepassword')->updatedBlindHashRequestCounters((object) array('total_error_count' => $this->errorCounter, 'total_request_count' => $this->requestCounter, 'total_retry_count' => $this->retryCounter));
+        $this->helper = $helper;
     }
 
+    function __destruct()
+    {
+        $this->helper->updatedBlindHashRequestCounters((object) array('total_error_count' => $this->errorCounter, 'total_request_count' => $this->requestCounter, 'total_retry_count' => $this->retryCounter));
+    }
 
     public function getSalt($hash1Hex, $versionID = null)
     {
@@ -74,20 +75,35 @@ class Client
 
     private function get($url)
     {
-        $ch = curl_init($this->makeURL($url));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        $verifyer = ($this->isLocalMachine()) ? false : true;
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $verifyer);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            'User-Agent: ' . $this->userAgent,
-            'Accept: application/json',
-        ));
-        $res = curl_exec($ch);
-        $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        if ($status !== 200) {
-            return new Response(['err' => $res, 'errCode' => curl_errno($ch), 'errMsg' => curl_error($ch)]);
+        for ($i = 0; $i <= $this->retryCount; $i++) {
+            $this->retryCounter = $i;
+            $curlTimeout = $this->timeout + ($i * $this->timeout);
+            foreach ($this->servers as $server) {
+                $this->requestCounter++;
+                $taplinkUrl = sprintf('https://%s/%s', trim($server, '/'), ltrim($url, '/'));
+                $ch = curl_init($taplinkUrl);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_TIMEOUT_MS, $curlTimeout);
+                $verifyer = ($this->isLocalMachine()) ? false : true;
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $verifyer);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                    'User-Agent: ' . $this->userAgent,
+                    'Accept: application/json',
+                ));
+                $res = curl_exec($ch);
+                $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+                if ($status !== 0) {
+                    if ($status !== 200) {
+                        return new Response(['err' => true, 'errCode' => curl_errno($ch), 'errMsg' => curl_error($ch)]);
+                    }
+
+                    return new Response(json_decode($res, true));
+                }
+            }
         }
-        return new Response(json_decode($res, true));
+        $this->errorCounter++;
+        return new Response(['err' => true, 'errCode' => -1, 'errMsg' => 'Request Timeout']);
     }
 
     /**
@@ -111,33 +127,6 @@ class Client
     public function verifyAppId()
     {
         return $this->get(sprintf('%s', $this->appID));
-    }
-
-    /**
-     * Return public key
-     * 
-     * @return string
-     */
-    public function getPublicKey()
-    {
-        $ch = curl_init($this->makeURL($this->appID));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        $verifyer = ($this->isLocalMachine()) ? false : true;
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $verifyer);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            'User-Agent: ' . $this->userAgent,
-            'Accept: application/json',
-        ));
-        $res = curl_exec($ch);
-        $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        if ($status !== 200) {
-            return;
-        }
-        $res = json_decode($res, true);
-        if (isset($res['publicKey']))
-            return $res['publicKey'];
-        else
-            return;
     }
 
     /**
@@ -177,7 +166,7 @@ class Client
         }
         $ciphertext = hex2bin(substr($cryptHex, 1, strlen($cryptHex) - 1));
         $keypair = hex2bin($privateKeyHex . $publicKeyHex);
-        $decrypt = \Sodium\crypto_box_seal_open(hex2bin($cryptHex), $keypair);
+        $decrypt = \Sodium\crypto_box_seal_open($ciphertext, $keypair);
         return bin2hex($decrypt);
     }
 

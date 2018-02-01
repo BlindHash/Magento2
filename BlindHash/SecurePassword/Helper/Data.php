@@ -12,6 +12,7 @@ class Data extends AbstractHelper
     \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig, \Magento\Framework\App\Config\ConfigResource\ConfigInterface $resourceConfig)
     {
         $this->scopeConfig = $scopeConfig;
+        $this->resourceConfig = $resourceConfig;
     }
 
     /**
@@ -20,13 +21,12 @@ class Data extends AbstractHelper
      */
     public function updatedBlindHashRequestCounters($counterArray)
     {
-        if (!(boolean) $this->scopeConfig->getValue('blindhash/general/enabled')) {
+        if (!(boolean) $this->scopeConfig->getValue('blindhash/request/request_statistics')) {
             return;
         }
 
         $defaultScope = \Magento\Framework\App\Config\ScopeConfigInterface::SCOPE_TYPE_DEFAULT;
         $defaultStoreId = \Magento\Store\Model\Store::DEFAULT_STORE_ID;
-
 
         $this->resourceConfig->saveConfig('blindhash/request/total_error_count', $counterArray->total_error_count + (int) $this->scopeConfig->getValue('blindhash/request/total_error_count'), $defaultScope, $defaultStoreId);
         $this->resourceConfig->saveConfig('blindhash/request/total_request_count', $counterArray->total_request_count + (int) $this->scopeConfig->getValue('blindhash/request/total_request_count'), $defaultScope, $defaultStoreId);

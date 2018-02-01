@@ -18,12 +18,13 @@ class Encryption extends \Magento\Framework\Encryption\Encryptor implements \Mag
 
     protected $taplink;
     protected $scopeConfig;
+    protected $helper;
 
     public function __construct(
-    Random $random, DeploymentConfig $deploymentConfig, \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig)
+    Random $random, DeploymentConfig $deploymentConfig, \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig, \BlindHash\SecurePassword\Helper\Data $helper)
     {
         $this->scopeConfig = $scopeConfig;
-        $this->resourceConfig = $resourceConfig;
+        $this->helper = $helper;
         parent::__construct($random, $deploymentConfig);
     }
 
@@ -31,7 +32,7 @@ class Encryption extends \Magento\Framework\Encryption\Encryptor implements \Mag
     {
 
         if ($salt === false || !(boolean) $this->scopeConfig->getValue('blindhash/general/enabled')) {
-            return parent::getHash($password, $salt, $version);
+            return parent::getHash($password, $salt, self::HASH_VERSION_LATEST);
         }
 
         if ($salt === true) {
@@ -47,14 +48,17 @@ class Encryption extends \Magento\Framework\Encryption\Encryptor implements \Mag
         // The hash to send to TapLink is the SHA512-HMAC(salt, password)
         $res = $taplink->newPassword(hash_hmac(self::HASH_ALGORITHM, $password, $salt));
 
-        if ($res->error) {
-            throw new \Exception($res->error);
+        if ($res->err) {
+            throw new \Exception($res->errMsg);
         }
 
         // Adding magento hash as last parameter
-        $hash1 = parent::getHash($password, $salt, $version);
-        // encrypt with libsodium
-        $hash1 = $taplink->encrypt($publicKey, @explode(self::DELIMITER, $hash1)[0]);
+        $hash1 = @explode(self::DELIMITER, parent::getHash($password, $salt, $version))[0];
+
+        if ((boolean) $this->scopeConfig->getValue('blindhash/general/legacy_hashes')) {
+            // encrypt with libsodium
+            $hash1 = $taplink->encrypt($publicKey, $hash1);
+        }
 
         return implode(self::BLINDHASH_DELIMITER, [self::PREFIX, $res->hash2Hex, $salt, self::NEW_HASHING_VERSION, $hash1]);
     }
@@ -67,12 +71,14 @@ class Encryption extends \Magento\Framework\Encryption\Encryptor implements \Mag
         // The hash to send to TapLink is the SHA512-HMAC(salt, password)
         $res = $taplink->newPassword(hash_hmac(self::HASH_ALGORITHM, $hash, $salt));
 
-        if ($res->error) {
-            throw new \Exception($res->error);
+        if ($res->err) {
+            throw new \Exception($res->errMsg);
         }
 
-        // encrypt with libsodium
-        $hash = $taplink->encrypt($publicKey, $hash);
+        if ((boolean) $this->scopeConfig->getValue('blindhash/general/legacy_hashes')) {
+            // encrypt with libsodium
+            $hash = $taplink->encrypt($publicKey, $hash);
+        }
 
         return @implode(self::BLINDHASH_DELIMITER, [self::PREFIX, $res->hash2Hex, $salt, $version, $hash]);
     }
@@ -91,7 +97,7 @@ class Encryption extends \Magento\Framework\Encryption\Encryptor implements \Mag
         $timeout = $this->scopeConfig->getValue('blindhash/request/timeout');
         $serverList = ($this->scopeConfig->getValue('blindhash/general/server_list')) ? @explode(',', $this->scopeConfig->getValue('blindhash/general/server_list')) : array();
 
-        return $this->taplink = new Client($appId, $retryCount, $timeout, $serverList);
+        return $this->taplink = new Client($appId, $retryCount, $timeout, $serverList, $this->helper);
     }
 
     public function getPublicKey()
@@ -106,7 +112,7 @@ class Encryption extends \Magento\Framework\Encryption\Encryptor implements \Mag
         }
 
         // Get the pieces of the puzzle.
-        list($T, $expectedHash2Hex, $salt, $version) = explode(self::BLINDHASH_DELIMITER, $hash);
+        list($T, $expectedHash2Hex, $salt, $version, $hash1) = explode(self::BLINDHASH_DELIMITER, $hash);
 
         $version = (int) $version;
         if ($version < self::NEW_HASHING_VERSION) {
@@ -116,8 +122,12 @@ class Encryption extends \Magento\Framework\Encryption\Encryptor implements \Mag
         $taplink = $this->getTaplinkObject();
         $res = $taplink->verifyPassword(hash_hmac(self::HASH_ALGORITHM, $password, $salt), $expectedHash2Hex);
 
-        if ($res->error) {
-            throw new \Exception($res->error);
+        if ($res->err) {
+            if ((substr($hash1, 0, 1) !== 'Z') && $version == self::NEW_HASHING_VERSION) {
+                return parent::isValidHash($password, $hash1 . ":" . $salt . ":" . self::HASH_VERSION_LATEST);
+            } else {
+                Mage::logException($res->errMsg);
+            }
         }
 
         return $res->matched;

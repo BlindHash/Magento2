@@ -20,7 +20,7 @@ class Downgrade extends \BlindHash\SecurePassword\Model\Encryption
 
     const LIMIT = 100;
 
-    public function __construct(\Magento\Framework\App\ResourceConnection $resource, Random $random, DeploymentConfig $deploymentConfig, \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig, \Magento\Framework\Message\ManagerInterface $messageManager, \Magento\Framework\App\ResponseFactory $responseFactory, \Magento\Framework\UrlInterface $url)
+    public function __construct(\Magento\Framework\App\ResourceConnection $resource, Random $random, DeploymentConfig $deploymentConfig, \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig, \BlindHash\SecurePassword\Helper\Data $helper, \Magento\Framework\Message\ManagerInterface $messageManager, \Magento\Framework\App\ResponseFactory $responseFactory, \Magento\Framework\UrlInterface $url)
     {
         $this->write = $resource->getConnection();
         $this->customerPasswordTable = $resource->getTableName('customer_entity');
@@ -29,7 +29,7 @@ class Downgrade extends \BlindHash\SecurePassword\Model\Encryption
         $this->prefix = self::PREFIX . self::BLINDHASH_DELIMITER;
         $this->_responseFactory = $responseFactory;
         $this->_url = $url;
-        parent::__construct($random, $deploymentConfig, $scopeConfig);
+        parent::__construct($random, $deploymentConfig, $scopeConfig, $helper);
     }
 
     /**
