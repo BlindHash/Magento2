@@ -1,7 +1,7 @@
 <?php namespace BlindHash\SecurePassword\Model;
 
-require_once __DIR__ . '\Taplink\Client.php';
-require_once __DIR__ . '\Taplink\Response.php';
+require_once __DIR__ . '/Taplink/Client.php';
+require_once __DIR__ . '/Taplink/Response.php';
 
 use Client;
 use Magento\Framework\App\DeploymentConfig;
@@ -21,7 +21,7 @@ class Encryption extends \Magento\Framework\Encryption\Encryptor implements \Mag
     protected $helper;
 
     public function __construct(
-    Random $random, DeploymentConfig $deploymentConfig, \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig, \BlindHash\SecurePassword\Helper\Data $helper)
+    Random $random, DeploymentConfig $deploymentConfig, \Magento\Framework\App\Config\ScopeConfigInterface\Proxy $scopeConfig, \BlindHash\SecurePassword\Helper\Data $helper)
     {
         $this->scopeConfig = $scopeConfig;
         $this->helper = $helper;

@@ -21,15 +21,15 @@ class Hashes extends \Magento\Backend\App\Action
         if ($privateKey = $this->getRequest()->getParam('private_key')) {
             $count = $this->downgrade->downgradeAllPasswords($privateKey);
         } else {
-            $this->getMessageManager()->addError(__('Please provide Unistall key to downgrade blindhashes.'));
+            $this->getMessageManager()->addError(__('Please provide Unistall key to downgrade BlindHashes.'));
         }
 
         if ($count) {
-            $this->getMessageManager()->addSuccess(__($count . ' password(s) has been downgraded to blind hash.'));
+            $this->getMessageManager()->addSuccess(__($count . ' password(s) has been downgraded from BlindHash.'));
             //Disable BlindHash
             $this->disableBlindHashProtection();
         } else {
-            $this->getMessageManager()->addNotice(__('There are no blindhash passwords.'));
+            $this->getMessageManager()->addNotice(__('There are no BlindHash passwords.'));
         }
         $this->_redirect('adminhtml/system_config/edit', array('section' => 'blindhash'));
     }

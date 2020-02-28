@@ -17,16 +17,16 @@ class Hashes extends \Magento\Backend\App\Action
     public function execute()
     {
         if (!(boolean) $this->scopeConfig->getValue('blindhash/general/enabled')) {
-            $this->getMessageManager()->addNotice(__('Please enable Blind hash Hashing before upgrade.'));
+            $this->getMessageManager()->addNotice(__('Please enable BlindHash hashing before upgrade.'));
             $this->_redirect('adminhtml/system_config/edit', array('section' => 'blindhash'));
             return;
         }
         $count = $this->upgrade->upgradeAllPasswords();
 
         if ($count) {
-            $this->getMessageManager()->addSuccess(__($count . ' password(s) has been upgraded to blind hash.'));
+            $this->getMessageManager()->addSuccess(__($count . ' password(s) has been upgraded to BlindHash.'));
         } else {
-            $this->getMessageManager()->addNotice(__('There are no old hash passwords left.'));
+            $this->getMessageManager()->addNotice(__('There are no legacy hashed passwords to upgrade.'));
         }
         $this->_redirect('adminhtml/system_config/edit', array('section' => 'blindhash'));
     }

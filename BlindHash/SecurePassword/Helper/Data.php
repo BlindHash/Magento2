@@ -9,7 +9,7 @@ class Data extends AbstractHelper
     protected $resourceConfig;
 
     public function __construct(
-    \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig, \Magento\Framework\App\Config\ConfigResource\ConfigInterface $resourceConfig)
+    \Magento\Framework\App\Config\ScopeConfigInterface\Proxy $scopeConfig, \Magento\Framework\App\Config\ConfigResource\ConfigInterface\Proxy $resourceConfig)
     {
         $this->scopeConfig = $scopeConfig;
         $this->resourceConfig = $resourceConfig;
