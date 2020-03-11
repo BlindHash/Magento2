@@ -14,7 +14,7 @@ class Upgrade extends \BlindHash\SecurePassword\Model\Encryption
 
     const LIMIT = 100;
 
-    public function __construct(\Magento\Framework\App\ResourceConnection $resource, Random $random, DeploymentConfig $deploymentConfig, \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig, \BlindHash\SecurePassword\Helper\Data $helper)
+    public function __construct(\Magento\Framework\App\ResourceConnection $resource, Random $random, DeploymentConfig $deploymentConfig, \Magento\Framework\App\Config\ScopeConfigInterface\Proxy $scopeConfig, \BlindHash\SecurePassword\Helper\Data $helper)
     {
         $this->write = $resource->getConnection();
         $this->customerPasswordTable = $resource->getTableName('customer_entity');
