@@ -142,7 +142,7 @@ class Client
             return $hashHex;
         }
 
-        $crypt = \Sodium\crypto_box_seal(hex2bin($hashHex), hex2bin($publicKeyHex));
+	$crypt = \Sodium\crypto_box_seal(hex2bin($hashHex), hex2bin($publicKeyHex));
         return "Z" . bin2hex($crypt);
     }
 
@@ -165,7 +165,7 @@ class Client
             return $cryptHex;
         }
         $ciphertext = hex2bin(substr($cryptHex, 1, strlen($cryptHex) - 1));
-        $keypair = hex2bin($privateKeyHex . $publicKeyHex);
+	$keypair = \Sodium\crypto_box_keypair_from_secretkey_and_publickey(hex2bin($privateKeyHex),hex2bin($publicKeyHex));
         $decrypt = \Sodium\crypto_box_seal_open($ciphertext, $keypair);
         return bin2hex($decrypt);
     }
@@ -197,6 +197,41 @@ class Client
             return strcmp($message, $decrypt) === 0;
         } catch (Exception $ex) {
             return false;
+        }
+    }
+
+    public function decryptTest($publicKeyHex, $privateKeyHex)
+    {
+	if (!function_exists('\Sodium\crypto_box_seal')) {
+            return false;
+        }
+
+        try {
+	    $calcPubKey = bin2hex(\Sodium\crypto_box_publickey_from_secretkey(hex2bin($privateKeyHex)));
+	    if (strcasecmp($calcPubKey, $publicKeyHex) == 2) {
+		return "Private Key produced a mismatched Public Key!".
+			"<br> - Private Key: ".$privateKeyHex.
+			"<br> - Configured Public Key: ".$publicKeyHex.
+			"<br> - Calculated Public Key: ".$calcPubKey;
+	    }
+
+
+            $message = "This is a test.";
+	    $keypair = \Sodium\crypto_box_keypair_from_secretkey_and_publickey(hex2bin($privateKeyHex),hex2bin($publicKeyHex));
+            $publickey = hex2bin($publicKeyHex);
+            $crypt = \Sodium\crypto_box_seal($message, $publickey);
+            $decrypt = \Sodium\crypto_box_seal_open($crypt, $keypair);
+
+            if (strcmp($message, $decrypt) === 0) {
+		return "";
+	    } else {
+		return "While testing decryption, 'crypto_box_seal_open' succeeded, but the decrypted result did not match the original plaintext.".
+			"<br> - Crypt Data: ".bin2hex($crypt).
+			"<br> - Public Key: ".$publicKeyHex."<br> - Private Key: ".$privateKeyHex.
+			"<br> - Message: '".$message."'<br> - Result: '".$decrypt."'";
+	    }
+        } catch (Exception $ex) {
+            return $ex->getMessage();
         }
     }
 }

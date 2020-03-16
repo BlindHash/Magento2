@@ -41,6 +41,15 @@ class Downgrade extends \BlindHash\SecurePassword\Model\Encryption
         $this->privateKey = $privateKey;
         $this->publicKeyHex = $this->getPublicKey();
         $this->taplink = $this->getTaplinkObject();
+
+	$err = $this->taplink->decryptTest($this->publicKeyHex, $privateKey);
+	if (strlen($err) > 0) {
+	    $this->messageManager->addError('Specified Uninstall Key is not able to decrypt data.<br><br>'.$err);
+            $url = $this->_url->getUrl('adminhtml/system_config/edit', array('section' => 'blindhash'));
+	    $this->_responseFactory->create()->setRedirect($url)->sendResponse();
+	    exit;
+	}
+
         $this->downgradeAllAdminPasswords();
         $this->downgradeAllCustomerPasswords();
         return $this->count;
@@ -106,7 +115,7 @@ class Downgrade extends \BlindHash\SecurePassword\Model\Encryption
 
         // If decryption fails then get back to admin with error
         if ($hash1Encrypted && empty($hash1)) {
-            $this->messageManager->addError(__('Not able to decrypt password.'));
+            $this->messageManager->addError('Not able to decrypt password.');
             $url = $this->_url->getUrl('adminhtml/system_config/edit', array('section' => 'blindhash'));
             $this->_responseFactory->create()->setRedirect($url)->sendResponse();
             exit;

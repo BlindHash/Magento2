@@ -19,13 +19,17 @@ class Encryption extends \Magento\Framework\Encryption\Encryptor implements \Mag
     protected $taplink;
     protected $scopeConfig;
     protected $helper;
+    protected $logger;
 
     public function __construct(
     Random $random, DeploymentConfig $deploymentConfig, \Magento\Framework\App\Config\ScopeConfigInterface\Proxy $scopeConfig, \BlindHash\SecurePassword\Helper\Data $helper)
     {
+        parent::__construct($random, $deploymentConfig);
+
+        $this->random = $random;
         $this->scopeConfig = $scopeConfig;
         $this->helper = $helper;
-        parent::__construct($random, $deploymentConfig);
+        $this->logger = \Magento\Framework\App\ObjectManager::getInstance()->get(\Psr\Log\LoggerInterface\Proxy::class);
     }
 
     public function getHash($password, $salt = false, $version = self::NEW_HASHING_VERSION)
@@ -57,7 +61,11 @@ class Encryption extends \Magento\Framework\Encryption\Encryptor implements \Mag
 
         if ((boolean) $this->scopeConfig->getValue('blindhash/general/legacy_hashes')) {
             // encrypt with libsodium
-            $hash1 = $taplink->encrypt($publicKey, $hash1);
+                $this->logger->info('Attempting to encryption Hash1 with Public Key');
+                $this->logger->info('Hash1: '.$hash1);
+                $this->logger->info('Public Key: '.$publicKey);
+                $hash1 = $taplink->encrypt($publicKey, $hash1);
+                $this->logger->info('Crypt: '.$hash1);
         }
 
         return implode(self::BLINDHASH_DELIMITER, [self::PREFIX, $res->hash2Hex, $salt, self::NEW_HASHING_VERSION, $hash1]);
@@ -116,17 +124,24 @@ class Encryption extends \Magento\Framework\Encryption\Encryptor implements \Mag
 
         $version = (int) $version;
         if ($version < self::NEW_HASHING_VERSION) {
+            $this->logger->info('BLINDHASH:isValidHash - Pre-hashing a legacy-upgraded BlindHash...');
             $password = @explode(self::DELIMITER, parent::getHash($password, $salt, $version))[0];
         }
+
         // This is a TapLink Blind hash
+        $this->logger->info('BLINDHASH:isValidHash - Performing BlindHash...');
         $taplink = $this->getTaplinkObject();
         $res = $taplink->verifyPassword(hash_hmac(self::HASH_ALGORITHM, $password, $salt), $expectedHash2Hex);
 
         if ($res->err) {
+            $this->logger->info('BLINDHASH:isValidHash - Encountered error while attempting to perform BlindHash:');
+            $this->logger->info('BLINDHASH:isValidHash - '.$res->errMsg);
             if ((substr($hash1, 0, 1) !== 'Z') && $version == self::NEW_HASHING_VERSION) {
+                $this->logger->info('BLINDHASH:isValidHash - Performing legacy hash (recovery mode)...');
                 return parent::isValidHash($password, $hash1 . ":" . $salt . ":" . self::HASH_VERSION_LATEST);
             } else {
-                Mage::logException($res->errMsg);
+                $this->logger->alert('BLINDHASH:isValidHash - Error running BlindHash - Legacy hash encrypted - Unable to verify password.');
+                $this->logger->alert($res->errMsg);
             }
         }
 
